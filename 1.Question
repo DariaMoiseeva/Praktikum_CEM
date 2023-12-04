@@ -1,0 +1,53 @@
+library(readxl)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+# import the excel
+wholeSet <- read_excel("MUE.2022.for.LMU.xlsx")
+data <- wholeSet[, c(85, 6, 7, 8)]
+colnames(data) <- c("class", "activity1", "activity2", "activity3")
+df <- data
+for (i in 1:nrow(df)) {
+  if (df[i, 1] == "Kleine Unternehmen") {
+    df[i, 1] <- "Small Companies"
+  } else if (df[i, 1] == "Mittlere Unternehmen") {
+    df[i, 1] <- "Medium Companies"
+  } else if (df[i, 1] == "Großunternehmen") {
+    df[i, 1] <- "Large Companies"
+  }
+}
+# change the data into long term
+df_long <- df %>%
+  gather(key = "activity", value = "participation", activity1, activity2, activity3)
+
+# choose the data of ones that have participated the activity
+df_long <- df_long %>%
+  filter(participation == 1 | participation == 2)
+
+# caculate the percentage of each
+df_percentage <- df_long %>%
+  group_by(class, activity) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(class) %>%
+  mutate(percentage = count / sum(count))
+
+# generate a gragh to reveal the percentage
+ggplot(df_percentage, aes(x = class, y = percentage, fill = activity)) +
+  geom_bar(stat = "identity", position = position_fill()) +
+  scale_fill_manual(
+    values = c("blue", "green", "red"),
+    labels = c(
+      "Taking action on specific occasions
+      (e.g., on-site help, local clean-up campaigns)",
+      "Free services
+      (e.g., contributing skills on a pro bono basis)",
+      "Employee release for volunteering
+      (e.g., voluntary engagement during working hours)"
+    )
+  ) +
+  labs(x = "Company Size", y = "Percentage of Participations", fill = "Activity") +
+  theme_minimal() +
+  ggtitle("Corporate Volunteering Activities by Company Size (Percentage)") +
+  scale_y_continuous(labels = scales::percent_format())
