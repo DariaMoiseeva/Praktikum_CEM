@@ -26,8 +26,8 @@ library(ggplot2)
 library(reshape2)
 data
 data$participation <- factor(data$participation, 
-                             levels = c(1, 2, 3, 4, -1),
-                             labels = c("More than once a month", "Once a quartal", "Once every half a year", "Once a year", "Not regularly"))
+                             levels = c(-1, 4, 3, 2, 1),
+                             labels = c("irregularly", "once a year", "once every half a year", "once a quartal","more often than once a month"))
 
 
 for(i in 2:8) {
@@ -55,11 +55,11 @@ data_percentage <- data_long %>%
   summarise(count = n()) %>%
   mutate(total = sum(count),
          percent = count / total * 100)
-
-cbPalette <- c("#999999","#56B4E9", "#CC79A7","#F0E442", "#0072B2", "#D55E00")
-
-ggplot(data_percentage, aes(fill = participation, y = percent, x = challenge)) +
-  geom_bar(position = "dodge", stat = "identity") +
+data_percentage
+data_percentage %>%
+  filter(challenge!= "challenge7") %>%
+  ggplot(aes(fill = participation, y = percent, x = challenge)) +
+  geom_bar(position = "stack", stat = "identity") +
    scale_x_discrete(labels = c("Find suitable offers 
                                for participation", 
                               "Get employees to participate", 
@@ -67,16 +67,23 @@ ggplot(data_percentage, aes(fill = participation, y = percent, x = challenge)) +
                               "Limited time of employees", 
                               "Cost of the program", 
                               "Lack of support from
-                              the management", 
-                              "Others")) +
-  labs(title = "The impact of volunteering challenges on frequency of participation",
+                              the management")) +
+  labs(title = "Volunteering challenges vs Frequency of volunteering",
        x = "Challenges",
        y = "Percent of companies",
-       fill = "Frequency of participation") +
+       fill = "Frequency of volunteering:") +
   theme_minimal() +
-  theme(axis.text.x = element_text(colour="black", angle = 45, hjust = 1,size = 10),title=element_text(size = 15),axis.title = element_text(size = 14),axis.text.y=element_text(colour="black", size = 10), legend.text=element_text(size = 13),legend.title=element_text(size = 14))+
-  scale_fill_viridis_d()
+  theme(axis.text.x = element_text(colour="black",
+                                   angle = 45,
+                                   hjust = 1,
+                                   size = 20),
+        title=element_text(size = 20),
+        axis.title = element_text(size = 20),
+        axis.text.y=element_text(colour="black", size = 20),
+        legend.text=element_text(size = 20),
+        legend.title=element_text(size = 20)) +
+  scale_fill_brewer(palette = "GnBu")
 
-ggsave("7question.jpeg",device = "jpeg",width = 9,height = 6)
+ggsave("7question.jpeg",device = "jpeg",width = 16,height = 9)
 
 ``` 
