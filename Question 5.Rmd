@@ -66,47 +66,50 @@ of volunteering")
 
 ggsave("5question.jpeg",device = "jpeg",width = 16,height = 9)
 
-data.Q5.2 <- data %>%
-  select(SERIAL,E001,region)%>%
-  filter(E001 > -1) %>%
-  filter(!is.na(E001)) %>%
-# add a column with marginal total for each region 
-  group_by(region) %>%
-  mutate(region_total = length(unique(SERIAL)))%>%
-# add a column with absolute frequencies for each case
-  group_by(region,E001) %>%
-  mutate(abs_frequency = length(unique(SERIAL))) %>%
-# add a column with conditional relative frequency of the level of frequency of volunteering given the region of a company
-  group_by(region,E001) %>%
-  mutate(rel_frequency = abs_frequency / region_total)%>%
-# leave only useful data
-  select(-SERIAL)%>%
-  distinct()
+#5.2
+library(readxl)
+dt <- read_xlsx("MUE.2022.for.LMU.xlsx")
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(ggplot2)
+dt <- data[, c(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 89)]
+companies <- data.frame(dt)
+colnames(companies) <- c("Arts and Culture", "Sport", "Leisure and socializing",
+                         "Science and Research", "Education and further training",
+                         "Health", "Social Affairs", "Population/disaster protection",
+                         "Climate and environmental protection", "Development cooperation",
+                         "Church and religion", "Other areas", "Regions")
 
-data.Q5.2
+df <- companies
+long_df <- pivot_longer(df, 
+                        cols = -Regions,  # 转换除Regions外的所有列
+                        names_to = "Industry", 
+                        values_to = "Involved") %>%
+  filter(Involved) %>%
+  group_by(Regions, Industry) %>%
+  summarise(Count = n()) %>%
+  ungroup() %>%
+  group_by(Regions) %>%
+  mutate(Total = sum(Count),
+         Percent = Count / Total * 100) %>%
+  ungroup()
+colors <- c(
+  "salmon", "tomato", "darkorange", "peru", "goldenrod", 
+  "khaki", "darkkhaki",  "darkseagreen", 
+  "cadetblue", "steelblue", "slategray", "lightsteelblue"
+)
 
-ggplot(data.Q5.2, aes(x = reorder(region,rel_frequency,FUN=max),
-                      y=abs_frequency,
-                      fill=factor(E001,levels = c(1,2,3,4),
-                                  labels = c("less than 25%", "25-49%",
-                                             "50-74%", "75% and more")))) + 
-geom_bar(stat ="identity",position = "fill") +
-scale_fill_brewer(name ="Percent of engaged employees :",
-                  palette = "YlGn")+
-theme(axis.text.x = element_text(colour="black",angle = 45, hjust = 1, size = 14,
-                                 face = "bold"),
-      title=element_text(size = 21),
-      axis.title = element_text(size = 21),
-      axis.text.y= element_text(colour="black", size = 21),
-      legend.text=element_text(size = 20),
-      legend.title=element_text(size = 21))+
-labs(x = "Region",
-     y = "Percent of companies",
-     title = "Companies of different regions compared by percent 
-of engaged employees")
-
-ggsave("5.1question.jpeg",device = "jpeg",width = 16,height = 9)
-"#238443"
+ggplot(long_df, aes(x = Regions, y = Percent, fill = Industry)) +
+  geom_bar(stat = "identity", position = "fill") +
+  coord_flip() +  # exchange x and y axis
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = olors) + 
+  theme_minimal() +
+  labs(title = "Percentage of Industries in Each Region",
+       x = "Region",
+       y = "Percentage",
+       fill = "Industry")
 ```
 
 
