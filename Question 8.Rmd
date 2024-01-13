@@ -17,17 +17,19 @@ library(reshape2)
 library(tidyr)
 #This graphic shows the different challenges they encounter in different industries.
 data<-read_excel("MUE.2022.for.LMU.xlsx")
-df1 <- data %>% select(SERIAL,A003) #Extract the industry relevant columns
-df2 <-data %>% select(SERIAL, E004_01,E004_02,E004_03,E004_04,E004_05,E004_06,E004_07) #Extract the challenged relevant columns
+df1 <- data %>% select(SERIAL,A003) #Extract the relevant columns
+df2 <-data %>% select(SERIAL, E004_01,E004_02,E004_03,E004_04,E004_05,E004_06,E004_07) 
+# Convert data from wide to long format
 df_industry_long <- pivot_longer(df1,cols = -SERIAL,names_to = "industry", values_to = "element")
 df_challenges_long <- pivot_longer(df2,cols = -SERIAL,names_to = "challenge", values_to = "element") 
 df_industry_long <- na.omit(df_industry_long) #Remove all na values
 df_challenges_long <- na.omit(df_challenges_long)
-df_challenges_long #this is result
-df_industry_long
+#df_challenges_long this is result
+# Filter rows where the element is TRUE ,we only need the true one
 df_challenges_long <- df_challenges_long[df_challenges_long$element ==TRUE,]
+# Merge two dataframes,put the variables we need together
 merged_df <- merge(df_industry_long, df_challenges_long, by ="SERIAL")
-merged_df
+# Replace values in columns based on the maps
 replacement_map <- c("1"="Construction industry",
                      "2"="Mining/Metal",
                      "3"="Education/continuing education",
@@ -49,24 +51,81 @@ replacement_map <- c("1"="Construction industry",
                      "19"="Other service industries",
                      "20"="Other manufacturing industries",
                      "21"="Other industries")
-replace2 <- c("E004_01"="Geeignete Angebote zur Beteiligung finden","E004_02"="Mitarbeitende zur Teilnahme gewinnen","E004_03"=" Koordination der Mitarbeitenden","E004_04"=" Begrenzte Zeit von Mitarbeitenden","E004_05"="Kosten des Programms","E004_06"=" Fehlende Unterstützung der Geschäftsführung","E004_07"="Sonstiges und zwar")
+replace2 <- c("E004_01"="Find suitable offers
+for participation",
+              "E004_02"="Attract employees to 
+participate",
+              "E004_03"=" Coordination of employees",
+              "E004_04"=" Limited time of employees",
+              "E004_05"="Costs of the program",
+              "E004_06"=" Lack of support
+from management",
+              "E004_07"="Other")
 merged_df$element.x <- replacement_map[as.character(merged_df$element.x)]
 merged_df$challenge <- replace2[merged_df$challenge]
 merged_df <- na.omit(merged_df)
-ggplot(merged_df)+
-  geom_bar(mapping = aes(x=element.x, fill=challenge), position = "fill")+
-   theme(axis.text.x = element_text(angle = 50, hjust = 1))+
-   theme(legend.text = element_text(size = 6))+
-  labs(x = "Industries", y = "Percent of companies") +
-  ggtitle("Distribution of volunteering challenges across industries") +
-  scale_fill_discrete(name = "Volunteering challenges:",
-  labels = c("Find suitable offers participation", 
-             "Get employees to participate", 
-             "Coordination of employees", 
-             "Limited time of employees", 
-             "Cost of the program", 
-             "Lack of support from management", 
-             "Other"))
+# Drop unnecessary columns and rename
+merged_df$industry <- NULL
+merged_df$element.y <- NULL
+names(merged_df) <- c("SERIAL","industry","challenge") 
+# Calculate percentages of each challenge in each industry
+merged_df2 <- merged_df %>%
+  group_by(industry) %>% 
+  mutate(sum = n()) %>% #this is the sum of all the challenges in one industry
+  group_by(industry,challenge) %>% 
+  mutate(eachc = n())%>% #this variable eachc means the number of each challenge in one industry
+  mutate(per = eachc / sum *100) #calculate the mean of each challenge in each industry
+# select and include the columns we need
+newdf <- select(merged_df2, challenge,per)
+##calculate the mean of each challenge.it's worth mentioning that in this step we do not take industry factors into account
+newdf2 <- newdf %>% group_by(challenge)%>% mutate(sum2 = n()) %>% mutate(percentage = sum(per)/sum2)
+# Remove duplicate rows. percentage of each challenge needs to appear only once.
+distinct_df <- newdf2 %>% distinct(challenge,percentage)
+# Sort challenges by percentage
+sort <- distinct_df$challenge[order(distinct_df$percentage)]
+#create a new column and it is in sorted order
+distinct_df$orderchallenge <- factor(distinct_df$challenge)
+distinct_df$orderchallenge <- factor(distinct_df$challenge,levels = sort)
+#this step is for ploting,we dont need the type of other and namely
+distinct_df <- filter(distinct_df,challenge!="Other and namely")
 
-```
+#line plot
+ggplot(merged_df2, aes(x = industry, y = per, color = challenge, group = challenge)) +
+  geom_smooth( method = 'loess' , formula = 'y ~ x', aes(group = challenge)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Industry", y = "Percentage", color = "Challenge") +
+  ggtitle("Percentage of Challenges Across Industries")
+
+#Create a stacked bar chart showing challenge percentages across industries
+ggplot(merged_df2)+
+  geom_bar(mapping = aes(x=industry, fill= challenge), position = "fill")+
+  theme_minimal()+
+  theme(title=element_text(size = 20),
+        axis.title = element_text(size = 20),
+        axis.text.x = element_text(colour="black",angle = 55, hjust = 1,
+                                   size = 15, face="bold"),
+        axis.text.y = element_text(colour="black",size = 20),
+        legend.text= element_text(size = 20),
+        legend.title=element_text(size = 20))+
+  scale_fill_viridis_d()+
+  labs(x = "Industry", y = "Percent of challenges", fill= "Challenge") +
+  ggtitle("Distribution of volunteering challenges across industries")
+
+ggsave("8.1question.jpeg",device = "jpeg", width = 16, height = 9)
+
+# Create a bar chart showing mean percentage of each challenge
+ggplot(distinct_df,mapping = aes(x=orderchallenge, y=percentage,fill=orderchallenge))+
+  geom_col()+
+  guides(fill = FALSE)+
+  theme_minimal()+
+  theme(title=element_text(size = 20),
+        axis.title = element_text(size = 20),
+        axis.text.x = element_text(colour="black",angle = 55, hjust = 1,size = 17,
+                                   face="bold"),
+        axis.text.y = element_text(colour="black",size = 20))+
+  scale_fill_viridis_d()+
+  labs(x = "Challenge", y = "Mean percentage among all industries")
+ggsave("8.2question.jpeg",device = "jpeg", width = 16, height = 9)
+
 ```
