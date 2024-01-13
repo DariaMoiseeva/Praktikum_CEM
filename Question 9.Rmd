@@ -47,13 +47,16 @@ df <- df %>%
 ggplot(df, aes(x = year_interval, fill = factor(engagement_category))) +
   geom_bar(position = "fill") +
   scale_y_continuous(labels = scales::percent_format()) +
-  labs(title="The impact of duration of company's operation on it's commitment
-to corporate volunteering activity ",
-  subtitle = "Level of commitment is measured in % of employees engaged in volunteering",
+  labs(title = "Duration of company's operation vs % of employees engaged",
   x = "Year of foundation", y = "Percent of companies",
   fill = "Percent of employees engaged") +
-  scale_fill_manual(values = c("#CC79A7","#F0E442", "#0072B2", "#D55E00"))+
-  theme(axis.text.x = element_text(colour="black",angle = 45, hjust = 1, size = 10), title=element_text(size = 14),axis.title = element_text(size = 14),axis.text.y= element_text(colour="black", size = 10), legend.text=element_text(size = 13),legend.title=element_text(size = 14))
+  scale_fill_brewer(palette = "YlGn")+
+  theme(axis.text.x = element_text(colour="black",angle = 45, hjust = 1, size = 20), 
+        title=element_text(size = 20),
+        axis.title = element_text(size = 20),
+        axis.text.y= element_text(colour="black", size = 20),    
+        legend.text=element_text(size = 20),
+        legend.title=element_text(size = 20))
 
-ggsave("9question.jpeg",device = "jpeg",width = 9,height = 6)
+ggsave("9question.jpeg",device = "jpeg",width = 16,height = 9)
 ```
